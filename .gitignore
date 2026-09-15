@@ -1,0 +1,10 @@
+qa/
+node_modules/
+.openai/
+.sites-runtime/
+.DS_Store
+*.docx
+*.pdf
+*.zip
+.env
+.env.*
