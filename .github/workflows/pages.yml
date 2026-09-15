@@ -1,0 +1,44 @@
+name: Publish Korrekturwerkstatt
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate and build offline application
+        run: |
+          node --check dist/app.js
+          node --check dist/engine.js
+          node --check dist/pdf-import.js
+          node build-local.cjs
+          git diff --exit-code -- Korrekturwerkstatt.html
+      - uses: actions/configure-pages@v5
+      - name: Prepare website and offline download
+        run: |
+          mkdir -p _site
+          cp -R dist/. _site/
+          cp Korrekturwerkstatt.html _site/
+          cp README.md _site/Anleitung.md
+          touch _site/.nojekyll
+          zip -j _site/Korrekturwerkstatt.zip Korrekturwerkstatt.html README.md dist/PDFJS-LICENSE.txt
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

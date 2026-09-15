@@ -89,3 +89,9 @@ PDF-Dateien können auch im Feld **Originaltexte** hochgeladen werden. Benennung
 Voraussetzung ist eine auslesbare Textebene. Eine Seite ohne auslesbaren Text stoppt den Import mit einem Hinweis auf die erforderliche Texterkennung (OCR); dadurch werden auch teilweise gescannte Dokumente nicht stillschweigend gekürzt. OCR und passwortgeschützte PDFs werden nicht unterstützt.
 
 Der ausgelesene Text wird für den Word-Export neu gesetzt. Das PDF-Schriftbild, Bilder, Tabellenstruktur und ursprüngliche Seitenumbrüche werden nicht übernommen. Vor allem bei mehrspaltigen Dokumenten die Textreihenfolge in der Vorschau prüfen. Die roten Markierungen und echten Fussnoten werden im erzeugten Word-Dokument eingefügt. Die gesamte Verarbeitung bleibt lokal im Browser.
+
+## Veröffentlichung mit GitHub Pages
+
+Der Workflow **Publish Korrekturwerkstatt** veröffentlicht die Website sowie die Offline-Version und Anleitung. In den Repository-Einstellungen muss GitHub Pages mit der Quelle **GitHub Actions** aktiviert sein. Danach unter **Actions → Publish Korrekturwerkstatt → Run workflow** starten.
+
+Der Workflow prüft die JavaScript-Dateien, baut die Offline-Version aus den Quellen und veröffentlicht ausschliesslich die Anwendung. Die Dateien `Korrekturwerkstatt.html`, `Korrekturwerkstatt.zip` und `Anleitung.md` sind danach zusätzlich unter der Website-Adresse abrufbar.
