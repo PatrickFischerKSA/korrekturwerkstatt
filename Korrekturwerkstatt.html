@@ -237,10 +237,14 @@ function normalized(s){let value='',map=[];for(let i=0;i<s.length;i++){const c=s
 function candidates(text,quote){if(!quote.trim())return[];const a=normalized(text),b=normalized(quote.trim()).value,out=[];
  const escaped=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
  if(/\[\s*(?:…|\.\.\.)\s*\]/.test(b)){
-  const chunks=b.split(/\[\s*(?:…|\.\.\.)\s*\]/).map(s=>s.trim()).filter(Boolean);if(!chunks.length)return[];
+  const chunks=b.replace(/^(?:…|\.\.\.)\s*/,'').replace(/\s*(?:…|\.\.\.)$/,'').split(/\[\s*(?:…|\.\.\.)\s*\]/).map(s=>s.trim()).filter(Boolean);if(!chunks.length)return[];
   const pattern=chunks.map(escaped).join('[\\s\\S]{0,3000}?');const re=new RegExp(pattern,'g');let m;while((m=re.exec(a.value))&&out.length<=1000)out.push({start:a.map[m.index].start,end:a.map[m.index+m[0].length-1].end});return out;
  }
- for(let at=0;at<=a.value.length-b.length;){const pos=a.value.indexOf(b,at);if(pos<0)break;out.push({start:a.map[pos].start,end:a.map[pos+b.length-1].end});at=pos+1;if(out.length>1000)break;}if(!out.length&&/^"[\s\S]+"$/.test(b))return candidates(text,b.slice(1,-1));return out;}
+ for(let at=0;at<=a.value.length-b.length;){const pos=a.value.indexOf(b,at);if(pos<0)break;out.push({start:a.map[pos].start,end:a.map[pos+b.length-1].end});at=pos+1;if(out.length>1000)break;}if(!out.length&&/^"[\s\S]+"$/.test(b))return candidates(text,b.slice(1,-1));
+ if(!out.length){const trimmed=b.replace(/^(?:…|\.\.\.)\s*/,'').replace(/\s*(?:…|\.\.\.)$/,'');if(trimmed!==b&&trimmed)return candidates(text,trimmed);}
+ // Editorial brackets around supplied words are not part of the original.
+ if(!out.length&&/\[[\p{L}\s]+\]/u.test(b)){const variants=[b.replace(/\[([\p{L}\s]+)\]/gu,'$1'),b.replace(/\[[\p{L}\s]+\]/gu,'').replace(/\s+/g,' ')];return [...new Map(variants.flatMap(v=>candidates(text,v)).map(r=>[r.start+':'+r.end,r])).values()];}
+ return out;}
 // Focus PDF annotations on changed words or the words beside missing punctuation.
 function prepareErrors(text,entries){return entries.map(original=>{const e=structuredClone(original);if(!e.fromPdf||!e.correction)return e;const hits=candidates(text,e.quote);if(hits.length!==1)return e;const full=hits[0],actual=text.slice(full.start,full.end),canon=normalized(actual),source=normalized(e.quote).value,correction=normalized(e.correction).value;
  const tokens=s=>Array.from(s.matchAll(/[\p{L}\p{N}]+|[^\s]/gu),m=>({s:m[0],start:m.index,end:m.index+m[0].length}));
@@ -272,7 +276,20 @@ async function exportDoc(item){if(item.assignment==='clean'&&item.errors.length=
 (function(){
 'use strict';
 const key=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
-function inferType(explanation){if(/Fragezeichen/i.test(explanation))return 'Interpunktion / Fragezeichen';if(/Komma/i.test(explanation))return 'Interpunktion / Komma';if(/Bezugsfehler|Wechsel von Pronomen/i.test(explanation))return 'Grammatik / Bezug';if(/Akkusativ|Dativ|Genitiv|Nominativ/i.test(explanation))return 'Grammatik / Kasus';if(/Artikel/i.test(explanation))return 'Grammatik / Artikel';if(/Rechtschreibung|Schreibweise|Grossschreibung|Kleinschreibung|grossgeschrieben|kleingeschrieben|substantiviert/i.test(explanation))return 'Rechtschreibung';if(/Konjunktion|Passivsatz|Subjekt|Prädikat|Satzbau/i.test(explanation))return 'Grammatik / Satzbau';return '';}
+function inferType(explanation){
+ const rules=[
+ [/Rechtschreib|Schreibweise|Grossschreibung|Kleinschreibung|grossgeschrieben|kleingeschrieben|substantiviert|zusammengeschrieben|zusammen.?geschrieben|Zusammensetzung|ohne .{0,12}geschrieben|kleine Anzahl|hinauswollen/i,'Rechtschreibung'],
+ [/Fragezeichen/i,'Interpunktion / Fragezeichen'],
+ [/Komma/i,'Interpunktion / Komma'],
+ [/Doppelpunkt|Semikolon|Anführungszeichen|Zeichenfehler|Gedankenstrich|Ordnungszahl.*Punkt/i,'Interpunktion'],
+ [/Bezugsfehler|Pronomen|Pronominal|Genus|feminin|maskulin/i,'Grammatik / Bezug'],
+ [/Akkusativ|Dativ|Genitiv|Nominativ/i,'Grammatik / Kasus'],
+ [/Artikel/i,'Grammatik / Artikel'],
+ [/Präposition|Von-Gruppe|Vor-Gruppe|Verbindung lautet|Verbindung heisst|Verbindung heißt|Verbindung .*verfügen|Verbindung .*leisten|Verbindung .*wagen|mehrteilige Verbindung|Vergleich.*wie|vor einer.*Jahreszahl/i,'Grammatik / Verbindung'],
+ [/Partizip|Infinitiv|Modalverb|Verbform|gebeugt|gebeugte|Adjektiv|Adverb|Wortform|Wortbildung|Komparativ|Steigerung/i,'Grammatik / Wortform'],
+ [/Konjunktion|Passivsatz|Subjekt|Prädikat|Satzbau|Hauptsatz|Nebensatz|Satzstellung|Verbzweit|Verb.*(?:Stelle|Ende|doppelt)|finite|indirekte Frage|direkte.*Frage|Frage.*indirekt|Gegenüberstellung|kombiniert|Negation/i,'Grammatik / Satzbau']
+ ];return rules.find(([pattern])=>pattern.test(explanation))?.[1]||'';
+}
 function pageLines(items){const sorted=items.filter(i=>i.str?.trim()).map(i=>({s:i.str,x:i.transform[4],y:i.transform[5],w:i.width})).sort((a,b)=>b.y-a.y||a.x-b.x),lines=[];for(const item of sorted){let row=lines.find(l=>Math.abs(l.y-item.y)<2);if(!row){row={y:item.y,items:[]};lines.push(row);}row.items.push(item);}return lines.map(l=>({...l,items:l.items.sort((a,b)=>a.x-b.x),text:l.items.sort((a,b)=>a.x-b.x).map((item,i,items)=>{const prev=items[i-1];return(i&&item.x-(prev.x+prev.w)>1.2&&!/\s$/.test(prev.s)&&!/^\s/.test(item.s)?' ':'')+item.s;}).join('')}));}
 function headers(line){const columns=[];for(const item of line.items){const k=key(item.s);let field=null;if(['nr','nummer'].includes(k))field='number';else if(['textstelle','fehlerhaftetextstelle','fehlerstelle','original'].includes(k))field='quote';else if(['korrektur','korrekturvorschlag'].includes(k))field='correction';else if(['erklarung','begrundung'].includes(k))field='explanation';else if(['p','punkt','punkte','gewicht','gewichtung'].includes(k))field='weight';else if(['fehlerart','kategorie'].includes(k))field='type';if(field)columns.push({field,x:item.x});}return ['quote','explanation','weight'].every(f=>columns.some(c=>c.field===f))?columns.sort((a,b)=>a.x-b.x):null;}
 async function readPdf(file){const pdfjs=await globalThis.loadKWPDF();let loading,doc;try{loading=pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer()),isEvalSupported:false,disableFontFace:true,useSystemFonts:false,useWorkerFetch:false,disableAutoFetch:true});doc=await loading.promise;if(doc.numPages>100)throw Error('PDF-Fehlerlisten dürfen höchstens 100 Seiten enthalten.');const errors=[],notes=[],allLines=[];let columns=null,row=null,stopped=false,seen=new Set(),hasText=false;const finish=()=>{if(!row)return;const raw=Object.fromEntries(Object.entries(row).map(([k,v])=>[k,v.join(' ').replace(/\s+/g,' ').trim()]));row=null;if(!raw.quote)return;const num=raw.number?.replace(/[.)]$/,'');if(num&&seen.has(num))throw Error('Doppelte Fehlernummer '+num+' im PDF. Bitte die Liste prüfen.');if(num)seen.add(num);const e=KW.entry({Textstelle:raw.quote,Korrektur:raw.correction||'',Erklärung:raw.explanation||'',Gewicht:raw.weight||'',Fehlerart:raw.type||inferType(raw.explanation||'')});e.typeInferred=!raw.type&&!!e.type;e.sourceQuote=raw.quote;e.sourceNumber=num||String(errors.length+1);e.fromPdf=true;errors.push(e);};

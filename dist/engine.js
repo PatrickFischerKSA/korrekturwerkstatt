@@ -33,10 +33,14 @@ function normalized(s){let value='',map=[];for(let i=0;i<s.length;i++){const c=s
 function candidates(text,quote){if(!quote.trim())return[];const a=normalized(text),b=normalized(quote.trim()).value,out=[];
  const escaped=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
  if(/\[\s*(?:…|\.\.\.)\s*\]/.test(b)){
-  const chunks=b.split(/\[\s*(?:…|\.\.\.)\s*\]/).map(s=>s.trim()).filter(Boolean);if(!chunks.length)return[];
+  const chunks=b.replace(/^(?:…|\.\.\.)\s*/,'').replace(/\s*(?:…|\.\.\.)$/,'').split(/\[\s*(?:…|\.\.\.)\s*\]/).map(s=>s.trim()).filter(Boolean);if(!chunks.length)return[];
   const pattern=chunks.map(escaped).join('[\\s\\S]{0,3000}?');const re=new RegExp(pattern,'g');let m;while((m=re.exec(a.value))&&out.length<=1000)out.push({start:a.map[m.index].start,end:a.map[m.index+m[0].length-1].end});return out;
  }
- for(let at=0;at<=a.value.length-b.length;){const pos=a.value.indexOf(b,at);if(pos<0)break;out.push({start:a.map[pos].start,end:a.map[pos+b.length-1].end});at=pos+1;if(out.length>1000)break;}if(!out.length&&/^"[\s\S]+"$/.test(b))return candidates(text,b.slice(1,-1));return out;}
+ for(let at=0;at<=a.value.length-b.length;){const pos=a.value.indexOf(b,at);if(pos<0)break;out.push({start:a.map[pos].start,end:a.map[pos+b.length-1].end});at=pos+1;if(out.length>1000)break;}if(!out.length&&/^"[\s\S]+"$/.test(b))return candidates(text,b.slice(1,-1));
+ if(!out.length){const trimmed=b.replace(/^(?:…|\.\.\.)\s*/,'').replace(/\s*(?:…|\.\.\.)$/,'');if(trimmed!==b&&trimmed)return candidates(text,trimmed);}
+ // Editorial brackets around supplied words are not part of the original.
+ if(!out.length&&/\[[\p{L}\s]+\]/u.test(b)){const variants=[b.replace(/\[([\p{L}\s]+)\]/gu,'$1'),b.replace(/\[[\p{L}\s]+\]/gu,'').replace(/\s+/g,' ')];return [...new Map(variants.flatMap(v=>candidates(text,v)).map(r=>[r.start+':'+r.end,r])).values()];}
+ return out;}
 // Focus PDF annotations on changed words or the words beside missing punctuation.
 function prepareErrors(text,entries){return entries.map(original=>{const e=structuredClone(original);if(!e.fromPdf||!e.correction)return e;const hits=candidates(text,e.quote);if(hits.length!==1)return e;const full=hits[0],actual=text.slice(full.start,full.end),canon=normalized(actual),source=normalized(e.quote).value,correction=normalized(e.correction).value;
  const tokens=s=>Array.from(s.matchAll(/[\p{L}\p{N}]+|[^\s]/gu),m=>({s:m[0],start:m.index,end:m.index+m[0].length}));

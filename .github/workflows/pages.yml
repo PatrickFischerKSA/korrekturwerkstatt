@@ -25,6 +25,7 @@ jobs:
           node --check dist/app.js
           node --check dist/engine.js
           node --check dist/pdf-import.js
+          node tests/import-regressions.cjs
           node build-local.cjs
           git diff --exit-code -- Korrekturwerkstatt.html
       - uses: actions/configure-pages@v5
