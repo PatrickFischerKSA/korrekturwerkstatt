@@ -6,7 +6,7 @@ const current=()=>state.texts.find(t=>t.uid===state.selected),say=(s,kind='info'
 const id=()=>crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2);
 const ready=t=>t.assignment==='clean'||t.errors.length>0&&KW.resolve(t.text,t.errors).every(e=>!e.issue);
 function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);}
-function outputName(t){return t.name.replace(/\.[^.]+$/,'').replace(/_rot_mit_Randbemerkungen$/i,'')+'_mit_Fussnoten.docx';}
+function outputName(t){return t.name.replace(/\.[^.]+$/,'').replace(/_rot_mit_Randbemerkungen$/i,'')+'_mit_Randbemerkungen.docx';}
 function appropriate(list,t){return list.errors.filter(e=>!e.textId||KW.fileId(e.textId)===t.id);}
 function assign(t,value){t.assignment=value;if(value==='embedded')t.errors=clone(t.embedded);else if(value==='manual'||value==='clean')t.errors=[];else{const list=state.lists.find(x=>x.uid===value);t.errors=list?KW.prepareErrors(t.text,appropriate(list,t)):[];}t.output=null;}
 function autoAssign(){for(const t of state.texts){if(t.assignment)continue;const matches=state.lists.filter(l=>l.id===t.id||l.errors.some(e=>e.textId&&KW.fileId(e.textId)===t.id));if(matches.length===1)assign(t,matches[0].uid);else if(t.embedded.length)assign(t,'embedded');}}
