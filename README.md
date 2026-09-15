@@ -74,7 +74,7 @@ Persönliche Originaltexte, Fehlerlisten, exportierte Word-Dateien und lokale Pr
 
 ## PDF-Fehlerlisten
 
-Unterstützt werden auslesbare PDF-Tabellen mit den Spalten `Nr.`, `Fehlerhafte Textstelle`, `Korrektur`, `Erklärung` und `P.`, wie im bereitgestellten Beispiel `S4d_Beispiel_Fehlerliste.pdf`. Die Fehlerart ist optional. Die Zuordnung erfolgt zum gemeinsamen Dateinamen `S4d_Beispiel.docx`. Scans ohne Textebene und passwortgeschützte PDFs werden mit einer verständlichen Meldung abgelehnt; OCR ist nicht eingebaut.
+Unterstützt werden auslesbare PDF-Tabellen mit den Spalten `Nr.`, `Fehlerhafte Textstelle`, `Korrektur`, `Erklärung` und `P.` bzw. `Punkt`, wie im bereitgestellten Beispiel `S4d_Beispiel_Fehlerliste.pdf`. Die Fehlerart ist optional. Die Zuordnung erfolgt zum gemeinsamen Dateinamen `S4d_Beispiel.docx`. Scans ohne Textebene und passwortgeschützte PDFs werden mit einer verständlichen Meldung abgelehnt; OCR ist nicht eingebaut.
 
 PDF-Zeilenumbrüche werden zusammengeführt. Auslassungen `[…]` in Zitaten und typografische Anführungszeichen werden bei der Suche berücksichtigt. Aus dem Unterschied zwischen Fehlerstelle und Korrektur wird nach Möglichkeit der betroffene Ausschnitt bestimmt. Fehlende Satzzeichen werden an den angrenzenden Wörtern markiert. Der Originaltext selbst wird nicht korrigiert oder umgeschrieben.
 
@@ -95,3 +95,11 @@ Der ausgelesene Text wird für den Word-Export neu gesetzt. Das PDF-Schriftbild,
 Der Workflow **Publish Korrekturwerkstatt** veröffentlicht die Website sowie die Offline-Version und Anleitung. In den Repository-Einstellungen muss GitHub Pages mit der Quelle **GitHub Actions** aktiviert sein. Danach unter **Actions → Publish Korrekturwerkstatt → Run workflow** starten.
 
 Der Workflow prüft die JavaScript-Dateien, baut die Offline-Version aus den Quellen und veröffentlicht ausschliesslich die Anwendung. Die Dateien `Korrekturwerkstatt.html`, `Korrekturwerkstatt.zip` und `Anleitung.md` sind danach zusätzlich unter der Website-Adresse abrufbar.
+
+### Abweichende PDF-Tabellen und Importhinweise
+
+Mehrseitige Tabellen mit wiederholter oder zweizeiliger Kopfzeile werden erkannt. Reine Zitatanführungszeichen werden bei der Textsuche als zweite Möglichkeit weggelassen, wenn das vollständige Zitat nicht im Original vorkommt.
+
+Fehlen einzelne Punktwerte, ergänzt das Tool sie nur anhand einer ausdrücklich angegebenen Zählregel, wenn Fehlerarten, Anzahl und Gesamtsumme vollständig zusammenpassen. Die Herleitung bleibt am jeweiligen Fehlereintrag sichtbar. Ohne eine solche konsistente Regel bleibt das Gewicht offen und muss vor dem Export ergänzt werden.
+
+Nach einem Stapelimport zeigt die Oberfläche die Anzahl geladener Dateien. Tatsächliche Importfehler stehen direkt darunter; wiederkehrende sachliche Hinweise werden gruppiert und eingeklappt angezeigt. Die Hinweise zur ausgewählten Fehlerliste bleiben in der Prüfansicht verfügbar.
