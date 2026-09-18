@@ -26,3 +26,17 @@ globalThis.loadKWPDF=async()=>({getDocument:()=>({promise:Promise.resolve({numPa
 const wordRow=KW.entry({'Fehlerhafte Textstelle':'ein Beispiel','P.':'0,5','Erklärung':'Vor dem Nebensatz fehlt ein Komma.'});
 assert.equal(wordRow.quote,'ein Beispiel');assert.equal(wordRow.weight,0.5);
 assert.equal(KWInferType('Der Bezugsausdruck steht im Singular. Ein Kongruenzfehler.'),'Grammatik / Bezug');
+
+// Format variants are independent of the real classroom files.
+for(const label of ['Textstelle (Original)','Originaltext','Zitat','Textauszug','Textstlle'])assert.equal(KW.fieldFor(label),'quote');
+assert.equal(KW.fieldFor('Xyz unbekannt'),null);
+const header=['Nr.','Zitat','Erläuterung','Abzug (Punkte)'];
+const parsed=KW.parseTable([['Fehlerübersicht'],header,['1','ein Fehler','Ein Tippfehler.','½'],header,['2','noch einer','Eine Erklärung.','1/2'],['Gesamt','','','1 Pkt.']]);
+assert.equal(parsed.entries.length,2);assert.equal(parsed.entries[0].weight,0.5);
+assert.equal(KW.parseTable([['3','Fortsetzung','Erklärung','1']],parsed.header).entries.length,1);
+assert.equal(KW.labeled('Zitat: falsch\nKategorie: Rechtschreibung\nErläuterung: Tippfehler\nAbzug: 0,5 Pkt.')[0].weight,0.5);
+assert(Number.isNaN(KW.entry({'Zitat':'Text','Abzug':'0,5 oder 1'}).weight));
+assert.throws(()=>KW.parseTable([['Zitat','Original','Punkte'],['a','b','1']]),/Mehrere Spalten/);
+assert.throws(()=>KW.parseTable([header,['1','Fehler','Grund','1'],['Gesamt','','','2']]),/Tabellensumme/);
+assert.throws(()=>KW.parseTable([header,['1','Fehler','1']]),/Anzahl der Zellen/);
+console.log('PASS: synonyms, header typos, title rows, repeated headers, continuations, fractions, totals and ambiguous input');

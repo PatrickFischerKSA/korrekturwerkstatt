@@ -107,3 +107,7 @@ Nach einem Stapelimport zeigt die Oberfläche die Anzahl geladener Dateien. Tats
 ### Word-Fehlerlisten
 
 Tabellen unterstützen auch «Fehlerhafte Textstelle» und «P.». Fortsetzungstabellen werden zusammengeführt. Separate Tabellen mit «Mögliche Verbesserung» werden als ungezählte Stilhinweise ausgelassen. Fehlende Fehlerarten werden aus der Erklärung abgeleitet und bleiben editierbar. Eine ausdrückliche Tabellenzeile «Keine eindeutigen Fehler» mit 0 Punkten erlaubt den unveränderten Export. Erkannte Gesamtsummen werden gegen die importierten Gewichte geprüft.
+
+### Flexible Erkennung
+
+Word-, CSV-, JSON- und beschriftete Textlisten sowie PDF-Kopfzeilen verwenden gemeinsame Feldnamen. Synonyme wie «Zitat», «Originaltext», «Erläuterung» und «Abzug», Klammerzusätze und eindeutige einzelne Tippfehler in längeren Kopfzeilen werden erkannt. Word-/CSV-Tabellen dürfen Titelzeilen und wiederholte Kopfzeilen enthalten; nummerierte Word-Fortsetzungstabellen können die letzte Spaltenzuordnung übernehmen. Gewichte akzeptieren beispielsweise «0,5 Pkt.», «½» und «1/2». Mehrdeutige Spalten, widersprüchliche Summen und unpassende Zellenzahlen werden gemeldet; fehlende Angaben bleiben zur Prüfung offen. Beliebige Layouts und gescannte PDFs ohne Textebene werden weiterhin nicht automatisch interpretiert.
