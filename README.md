@@ -103,3 +103,7 @@ Mehrseitige Tabellen mit wiederholter oder zweizeiliger Kopfzeile werden erkannt
 Fehlen einzelne Punktwerte, ergänzt das Tool sie nur anhand einer ausdrücklich angegebenen Zählregel, wenn Fehlerarten, Anzahl und Gesamtsumme vollständig zusammenpassen. Die Herleitung bleibt am jeweiligen Fehlereintrag sichtbar. Ohne eine solche konsistente Regel bleibt das Gewicht offen und muss vor dem Export ergänzt werden.
 
 Nach einem Stapelimport zeigt die Oberfläche die Anzahl geladener Dateien. Tatsächliche Importfehler stehen direkt darunter; wiederkehrende sachliche Hinweise werden gruppiert und eingeklappt angezeigt. Die Hinweise zur ausgewählten Fehlerliste bleiben in der Prüfansicht verfügbar.
+
+### Word-Fehlerlisten
+
+Tabellen unterstützen auch «Fehlerhafte Textstelle» und «P.». Fortsetzungstabellen werden zusammengeführt. Separate Tabellen mit «Mögliche Verbesserung» werden als ungezählte Stilhinweise ausgelassen. Fehlende Fehlerarten werden aus der Erklärung abgeleitet und bleiben editierbar. Eine ausdrückliche Tabellenzeile «Keine eindeutigen Fehler» mit 0 Punkten erlaubt den unveränderten Export. Erkannte Gesamtsummen werden gegen die importierten Gewichte geprüft.
