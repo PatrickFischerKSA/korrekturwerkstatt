@@ -14,8 +14,8 @@ vm.runInNewContext(fs.readFileSync(require.resolve('../dist/app.js'),'utf8'),con
 const change=(id,file)=>listeners.get(id+':change')({target:{files:[file],value:'selected'}});
 const waitFor=async check=>{for(let i=0;i<100;i++){if(check())return;await new Promise(resolve=>setImmediate(resolve));}throw Error('Queued import/export did not complete');};
 (async()=>{
- change('texts',{name:'Facharbeit Livia.docx'});
- change('lists',{name:'Fehlerliste_Fachmaturaarbeit_Livia.docx'});
+ change('texts',{name:'MeinOriginal.docx'});
+ change('lists',{name:'UnabhaengigeListe.docx'});
  await waitFor(()=>readTextCalls===1);
  assert.equal(readListCalls,0,'File processing must stay serial');
  assert.equal(element('lists').disabled,false,'A second file can be selected while an import runs');
@@ -27,6 +27,6 @@ const waitFor=async check=>{for(let i=0;i<100;i++){if(check())return;await new P
  assert.match(element('errors').innerHTML,/Zugeordnet/);
  listeners.get('download-one:click')();
  await waitFor(()=>downloads===1);
- assert.equal(exportCalls,1);assert.equal(element('downloads').hidden,false);assert.match(element('downloads').innerHTML,/download="Facharbeit Livia_mit_Randbemerkungen.docx"/);assert.match(element('downloads').innerHTML,/href="blob:test"/);
+ assert.equal(exportCalls,1);assert.equal(element('downloads').hidden,false);assert.match(element('downloads').innerHTML,/download="MeinOriginal_mit_Randbemerkungen.docx"/);assert.match(element('downloads').innerHTML,/href="blob:test"/);
  console.log('PASS: overlapping imports are queued, actual filenames pair, and the export button works');
 })().catch(error=>{console.error(error);process.exitCode=1;});

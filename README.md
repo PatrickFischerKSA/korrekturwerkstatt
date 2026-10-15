@@ -42,7 +42,7 @@ JSON-Beispiel:
 [{"Textstelle":"rufte","Fehlerart":"Grammatik","Erklärung":"Die Vergangenheitsform lautet «rief».","Gewicht":1}]
 ```
 
-Word-Fehlerlisten: Tabellen mit den genannten Spalten oder beschriftete Absätze wie im TXT-Beispiel. Unstrukturierte freie Fehlerberichte werden nicht automatisch interpretiert.
+Word-Fehlerlisten: Tabellen mit den genannten Spalten oder beschriftete Absätze wie im TXT-Beispiel. Andere Strukturen und freie Fehlerberichte werden als bearbeitbarer Importentwurf geladen; ihre Bedeutung wird ohne erfundene Angaben in der Importmaske zugeordnet.
 
 ## Randkommentare und Word-Export
 
@@ -112,7 +112,7 @@ Tabellen unterstützen auch «Fehlerhafte Textstelle» und «P.». Fortsetzungst
 
 Word-, CSV-, JSON- und beschriftete Textlisten sowie PDF-Kopfzeilen verwenden gemeinsame Feldnamen. Synonyme wie «Zitat», «Originaltext», «Erläuterung» und «Abzug», Klammerzusätze und eindeutige einzelne Tippfehler in längeren Kopfzeilen werden erkannt. Word-/CSV-Tabellen dürfen Titelzeilen und wiederholte Kopfzeilen enthalten; nummerierte Word-Fortsetzungstabellen können die letzte Spaltenzuordnung übernehmen. Gewichte akzeptieren beispielsweise «0,5 Pkt.», «½» und «1/2». Mehrdeutige Spalten, widersprüchliche Summen und unpassende Zellenzahlen werden gemeldet; fehlende Angaben bleiben zur Prüfung offen. Beliebige Layouts und gescannte PDFs ohne Textebene werden weiterhin nicht automatisch interpretiert.
 
-Word-Import: Kategorieübersichten werden erkannt; Abschnittsüberschriften wie «Orthografiefehler (44 × 1 Punkt)» liefern Fehlerart und Gewicht für die folgenden Tabellen. Nummerierungen dürfen je Kategorie neu beginnen. «Fehler», «Korrektur / Begründung» und «Verbesserung / Begründung» sind unterstützte Spalten. Explizit nicht gezählte Abschnitte werden ausgelassen. Die Übersichtssumme wird gegen die importierten Punkte geprüft.
+Word-Import: Kategorieübersichten werden erkannt; Ausdrückliche Kategorie- und Gewichtsangaben in Abschnittsüberschriften liefern Fehlerart und Gewicht für die folgenden Tabellen. Nummerierungen dürfen je Kategorie neu beginnen. «Fehler», «Korrektur / Begründung» und «Verbesserung / Begründung» sind unterstützte Spalten. Explizit nicht gezählte Abschnitte werden ausgelassen. Die Übersichtssumme wird gegen die importierten Punkte geprüft.
 
 Die Spalte «Kapitel» wird für die automatische Textstellenzuordnung verwendet. Word-Überschriften mit automatischer Nummerierung und nummerierte PDF-Überschriften werden berücksichtigt. Identische Einträge für sämtliche Vorkommen im selben Kapitel werden in Dokumentreihenfolge zugeordnet. PDF-Worttrennungen und abweichende ss/ß-Schreibungen in Zitaten werden bei Bedarf abgeglichen. Echte Mehrdeutigkeiten bleiben zur Prüfung offen. Word-Tabulatorformatierungen werden nicht als Textzeichen gelesen.
 
@@ -123,3 +123,21 @@ Nach dem Export bleiben die erzeugten Dateien über sichtbare Download-Links err
 Word-Listen unterstützen Übersichten mit «Punkte», «Fehlerpunkte» oder «Abzug», auch nach den Fehlertabellen. Kategorien dürfen mit oder ohne Nummerierung stehen; Zählregeln werden aus Überschriften oder Übersichten übernommen. «Nr. / Stelle» liefert Fehlernummer und Kapitel. Auslassungen in Zitaten werden als «…», «...» oder «[…]» unterstützt. Hinweise im Fliesstext ändern die Zählung nicht; ausdrücklich unbewertete Abschnitte bleiben ungezählt.
 
 Regressionen: `node tests/import-regressions.cjs` und `node tests/import-queue.cjs`. Mit installiertem Playwright und Chrome prüft `node tests/browser-formats.cjs` zwölf vollständige synthetische Word-Layouts; ein abweichender Playwright-Modulpfad kann über `KW_PLAYWRIGHT_MODULE` angegeben werden.
+
+## Allgemeiner Import für beliebige Aufbauten
+
+Die fünf unterstützten Dateitypen bleiben PDF mit Textebene, DOCX, CSV, JSON und TXT. Dateiaufbau, Spaltenreihenfolge, Überschriften und Anordnung müssen keiner Vorlage entsprechen. Die Erkennung arbeitet ohne Namens-, Personen- oder Dateifallregeln. Beschädigte, verschlüsselte oder nicht als Text auslesbare Dateien sind davon zu unterscheiden.
+
+Bekannte Strukturen werden automatisch übernommen. Bei uneindeutigen Strukturen wird die Datei als Importentwurf geladen und nicht wegen unbekannter Überschriften verworfen. Der allgemeine Zuordnungsbereich bietet:
+
+- Auswahl von Fehlereinträgen und Begleitinformationen pro Textabschnitt oder Tabelle,
+- freie Spaltenzuordnung, Startzeile und Zeilenauswahl,
+- Transponieren von Tabellen und Bündeln mehrzeiliger Einträge,
+- einen vollständigen Dateneditor mit wählbarem Trennzeichen,
+- ausdrücklich gesetzte Ergänzungen für fehlende Fehlerarten und Gewichte,
+- Prüfung einer optionalen erwarteten Punktesumme,
+- Erhalt von Originalzeilen, unbekannten Zusatzspalten und Originaldatei im lokalen Arbeitsspeicher sowie Sicherung als Import-JSON.
+
+Automatisch übernommene Listen können im selben Bereich erneut zugeordnet werden. Uneindeutige Bedeutungen werden nicht geraten. Änderungen an einer Zuordnung lassen sich vor der Übernahme verwerfen; noch nicht angewandte Änderungen im Dateneditor werden nicht stillschweigend ignoriert. Die Maske führt die Daten in dasselbe Fehlermodell wie der automatische Import und prüft anschliessend die Verankerung im Original.
+
+Zusätzliche Tests: `node tests/general-import.cjs`, mit Playwright/Chrome `node tests/browser-general-import.cjs` (unbekannte Aufbauten in allen fünf Containern bis zum Word-Download) und `node tests/browser-import-transforms.cjs` (vertikale Tabellen und mehrzeilige Einträge). Alle Fixtures sind synthetisch.

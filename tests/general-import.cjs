@@ -1,0 +1,22 @@
+const assert=require('node:assert/strict');
+require('../dist/engine.js');require('../dist/import-review.js');
+const I=KWImport;
+for(const delimiter of ['\t',';',',','|'])assert.deepEqual(I.parseRows('A'+delimiter+'B\n"ein'+delimiter+'Wert"'+delimiter+'zweiter',delimiter),[['A','B'],['ein'+delimiter+'Wert','zweiter']]);
+assert.deepEqual(I.parseRows('Unbekannt,NochUnbekannt\na,b'),[['Unbekannt','NochUnbekannt'],['a','b']]);
+const arbitrary=[['Spalte Q','Spalte R','Spalte S','Unbekannt'],['Feler','Fehler','Tippfehler','Zusatz\nmit Zeilenumbruch']];
+assert.deepEqual(I.parseRows(I.serializeRows(arbitrary),'\t'),arbitrary);
+const source=I.makeSource('Beliebige Tabelle',arbitrary);
+assert.equal(source.role,'unresolved');assert.deepEqual(source.originalRows,arbitrary);
+const draft={sources:[source],expectedTotal:''};assert.throws(()=>I.compile(draft),/auswählen/);
+source.role='entries';source.startRow=1;source.mapping=['quote','correction','explanation',''];source.defaultType='Rechtschreibung';source.defaultWeight='0,5';
+let result=I.compile(draft);assert.equal(result.errors.length,1);assert.equal(result.errors[0].quote,'Feler');assert.equal(result.errors[0].weight,0.5);assert.equal(result.errors[0].extra[0].value,'Zusatz\nmit Zeilenumbruch');assert.deepEqual(result.errors[0].sourceCells,arbitrary[1]);
+source.rows[1][0]='Arbeitskopie';assert.equal(source.originalRows[1][0],'Feler');
+source.mapping=['quote','quote','explanation',''];assert.throws(()=>I.compile(draft),/nur einer Spalte/);source.mapping=['quote','correction','explanation',''];
+draft.expectedTotal=1;assert.throws(()=>I.compile(draft),/ergeben 0.5/);source.defaultWeight='1';assert.equal(I.compile(draft).reviewedTotal,1);
+const json=I.jsonSources({irgendeinContainer:{daten:[{x:'Feler',y:'Fehler',z:{beleg:3}}]}});assert.equal(json.length,1);assert.equal(json[0].rows[1][2],'{"beleg":3}');
+const ragged=I.makeSource('Unregelmässig',[['A','B'],['x'],['y','z','Zusatz']]);assert.equal(ragged.mapping.length,3);assert.deepEqual(ragged.rows[1],['x']);
+console.log('PASS: arbitrary layouts, delimiters, nested JSON, ragged rows, source retention and explicit mapping validation');
+
+assert.deepEqual(I.transpose([['A','B'],['x']]),[['A','x'],['B','']]);
+assert.deepEqual(I.groupRows([['a'],['b'],['c'],['d']],2),[['a','b'],['c','d']]);
+assert.throws(()=>I.groupRows([['a']],0),/Zeilen/);
