@@ -40,3 +40,7 @@ assert.throws(()=>KW.parseTable([['Zitat','Original','Punkte'],['a','b','1']]),/
 assert.throws(()=>KW.parseTable([header,['1','Fehler','Grund','1'],['Gesamt','','','2']]),/Tabellensumme/);
 assert.throws(()=>KW.parseTable([header,['1','Fehler','1']]),/Anzahl der Zellen/);
 console.log('PASS: synonyms, header typos, title rows, repeated headers, continuations, fractions, totals and ambiguous input');
+
+for(const name of ['Fehler'])assert.equal(KW.fieldFor(name),'quote');
+for(const name of ['Korrektur / Begründung','Verbesserung / Begründung'])assert.equal(KW.fieldFor(name),'correction');
+assert.equal(KW.parseTable([['Nr.','Kapitel','Fehler','Korrektur'],['1','Vorwort','große','grosse']]).entries[0].quote,'große');

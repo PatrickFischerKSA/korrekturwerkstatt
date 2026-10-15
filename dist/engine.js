@@ -18,7 +18,7 @@ function indexDoc(doc){let text='',parts=[],starts=new Map(),ends=new Map();
  walk(elements(doc,'body')[0]||doc.documentElement);return{text,parts,starts,ends};}
 async function openZip(bytes){let zip;try{zip=await JSZip.loadAsync(bytes);}catch{throw Error('Die Datei ist kein lesbares DOCX. Bitte im Word-Format .docx speichern.');}let size=0;for(const item of Object.values(zip.files)){size+=item._data?.uncompressedSize||0;if(size>100*1024*1024)throw Error('Die entpackte Word-Datei ist grösser als 100 MB.');}if(!zip.file('word/document.xml'))throw Error('In dieser Datei fehlt der Word-Haupttext.');return zip;}
 // One schema for Word, CSV, JSON, labelled text and PDF headers.
-const fields={quote:['Textstelle','Fehlerhafte Textstelle','Fehlerstelle','Original','Originaltext','Originalstelle','Zitat','Textauszug','Fundstelle','Quote'],type:['Fehlerart','Fehlertyp','Kategorie','Fehlerkategorie','Type'],explanation:['Erklärung','Kurze Erklärung','Begründung','Erläuterung','Beschreibung','Kommentar','Explanation'],weight:['Gewicht','Gewichtung','Fehlerzählung','Punkte','Punkt','P','Pkt','Fehlerpunkte','Abzug','Weight'],correction:['Korrektur','Korrekturvorschlag','Verbesserung','Berichtigung','Corrected','Correction'],occurrence:['Vorkommen','Occurrence'],textId:['Text-ID','Dateiname','Text','Dokument'],number:['Nr','Nummer','Lfd Nr','Number']};
+const fields={quote:['Textstelle','Fehlerhafte Textstelle','Fehlerstelle','Fehler','Original','Originaltext','Originalstelle','Zitat','Textauszug','Fundstelle','Quote'],type:['Fehlerart','Fehlertyp','Kategorie','Fehlerkategorie','Type'],explanation:['Erklärung','Kurze Erklärung','Begründung','Erläuterung','Beschreibung','Kommentar','Explanation'],weight:['Gewicht','Gewichtung','Fehlerzählung','Punkte','Punkt','P','Pkt','Fehlerpunkte','Abzug','Weight'],correction:['Korrektur','Korrekturvorschlag','Verbesserung','Berichtigung','Corrected','Correction','Korrektur / Begründung','Verbesserung / Begründung'],occurrence:['Vorkommen','Occurrence'],textId:['Text-ID','Dateiname','Text','Dokument'],number:['Nr','Nummer','Lfd Nr','Number']};
 function fieldFor(label){const k=norm(String(label).replace(/\([^)]*\)/g,''));for(const [field,names]of Object.entries(fields))if(names.some(n=>norm(n)===k)||norm(field)===k)return field;
  // A single typo is accepted only for long, unambiguous headings.
  if(k.length<6)return null;const near=new Set();for(const [field,names]of Object.entries(fields))for(const n of names){const t=norm(n);if(t.length<6||Math.abs(t.length-k.length)>1)continue;let i=0,j=0,edits=0;while(i<k.length&&j<t.length){if(k[i]===t[j]){i++;j++;}else{edits++;if(k.length>=t.length)i++;if(t.length>=k.length)j++;}}edits+=k.length-i+t.length-j;if(edits<=1)near.add(field);}return near.size===1?[...near][0]:null;}
@@ -27,7 +27,7 @@ function entry(raw){const o={};for(const[k,v]of Object.entries(raw)){const field
 function tableHeader(row){const mapped=row.map(fieldFor);return mapped.includes('quote')&&mapped.some(f=>['weight','explanation','correction','type'].includes(f))?mapped:null;}
 function parseTable(rows,previous=null){let header=null,start=-1;for(let i=0;i<rows.length;i++){const h=tableHeader(rows[i]);if(h){header=h;start=i;break;}}
  if(!header&&previous&&rows.length&&rows[0].length===previous.length&&previous.includes('number')&&/^\d+[.)]?$/.test(rows[0][previous.indexOf('number')].trim())){header=previous;start=-1;}
- if(!header)throw Error('Keine eindeutige Tabellenkopfzeile erkannt. Erwartet wird eine Textstelle (z. B. Zitat oder Originaltext) und Erklärung, Korrektur oder Punkte.');
+ if(!header)throw Error('Die Spalten dieser Tabelle konnten noch nicht zugeordnet werden. Erkannte Überschriften: '+(rows[0]||[]).join(' · ')+'. Benötigt werden die fehlerhafte Textstelle und eine Erklärung oder Korrektur.');
  const used=header.filter(Boolean);if(new Set(used).size!==used.length)throw Error('Mehrere Spalten bedeuten dasselbe. Bitte die Spaltenbezeichnungen eindeutig machen.');
  const entries=[],totals=[];
  for(let i=start+1;i<rows.length;i++){const row=rows[i];if(!row.some(x=>x.trim()))continue;const repeated=tableHeader(row);if(repeated){if(JSON.stringify(repeated)!==JSON.stringify(header))throw Error('Geänderte Spaltenreihenfolge innerhalb einer Tabelle. Bitte eine separate Tabelle verwenden.');continue;}
@@ -39,17 +39,28 @@ function csvRows(s){s=s.replace(/^\uFEFF/,'');const lines=s.split(/\r?\n/);const
 function tableEntries(rows){return parseTable(rows).entries;}
 function labeled(s){const entries=[];let obj={},last='';const finish=()=>{if(Object.keys(obj).length){entries.push(entry(obj));obj={};last='';}};for(const line of s.split(/\r?\n/)){const m=line.match(/^\s*(?:\d+[.)]\s*)?([^:]{1,60}):\s*(.*)$/),field=m&&fieldFor(m[1]);if(field){if(field==='quote'&&obj.quote!==undefined)finish();obj[field]=m[2];last=field;}else if(line.trim()&&last)obj[last]+='\n'+line.trim();}finish();if(!entries.length)throw Error('Keine beschrifteten Fehlereinträge gefunden.');return entries;}
 async function readList(file){if(file.size>10*1024*1024)throw Error('Fehlerlisten dürfen höchstens 10 MB gross sein.');const ext=file.name.split('.').pop().toLowerCase();let errors=[],metadata={};if(ext==='pdf'){metadata=await globalThis.KWReadPdf(file);errors=metadata.errors;}else if(ext==='docx'){const zip=await openZip(await file.arrayBuffer()),d=xml(await zip.file('word/document.xml').async('string'));const tables=elements(d,'tbl');if(tables.length){
- const notes=[],numbers=new Set();let cleanRows=0,skipped=0,previousHeader=null;
- for(const table of tables){const rows=Array.from(table.children).filter(e=>e.localName==='tr').map(tr=>Array.from(tr.children).filter(e=>e.localName==='tc').map(tc=>elements(tc,'p').map(textOf).join(' ')));const heads=(rows[0]||[]).map(norm);
+ const notes=[],numbers=new Set();let cleanRows=0,skipped=0,previousHeader=null,section='',sectionType='',sectionWeight=NaN,summaryTotal=null;
+ for(const table of tables){
+ // Read only preceding body headings; document text is data, never instructions.
+ let preceding=table.previousElementSibling;const context=[];
+ while(preceding&&preceding.localName!=='tbl'){context.unshift(textOf(preceding));preceding=preceding.previousElementSibling;}
+ for(const line of context){const m=line.match(/^\s*\d+[.)]\s*(Orthografiefehler|Grammatikfehler|Satzzeichenfehler)\s*\(\d+\s*[×x]\s*(\d+(?:[.,]\d+)?)\s*Punkt/i);if(m){section=m[1];sectionType=/Orthografie/i.test(section)?'Rechtschreibung':/Grammatik/i.test(section)?'Grammatik':'Interpunktion';sectionWeight=asNumber(m[2]);previousHeader=null;}}
+ const uncounted=context.some(line=>/nicht (?:mit)?gezählt|ungezählt/i.test(line));
+
+ const rows=Array.from(table.children).filter(e=>e.localName==='tr').map(tr=>Array.from(tr.children).filter(e=>e.localName==='tc').map(tc=>elements(tc,'p').map(textOf).join(' ')));const heads=(rows[0]||[]).map(norm);
+ if(heads.includes('kategorie')&&heads.includes('anzahl')&&heads.includes('fehlerpunkte')){const total=rows.find(row=>/^(Total|Gesamt|Summe)$/i.test(row[0].trim()));if(total)summaryTotal=asNumber(total[heads.indexOf('fehlerpunkte')]);continue;}
+ if(uncounted){skipped++;continue;}
  if(heads.some(h=>/moglicheverbesserung|hinweisodermoglicheverbesserung/.test(h))&&!heads.some(h=>['gewicht','gewichtung','punkte','p'].includes(h))){skipped++;continue;}
  const parsed=parseTable(rows,previousHeader),entries=parsed.entries;previousHeader=parsed.header;
  for(const [i,e]of entries.entries()){
  if(e.weight===0&&/^Keine (?:eindeutigen )?Fehler[.!]?$/i.test(e.quote.trim())&&/Keine Fehlerpunkte/i.test(e.explanation)){cleanRows++;continue;}
- const number=e.sourceNumber;if(number&&numbers.has(number))throw Error('Doppelte Fehlernummer '+number+' in der Word-Liste.');if(number)numbers.add(number);
+ if(!parsed.header.includes('weight')&&Number.isFinite(sectionWeight))e.weight=sectionWeight;if(!e.type&&sectionType)e.type=sectionType;
+ const number=e.sourceNumber,numberKey=section+':'+number;if(number&&numbers.has(numberKey))throw Error('Doppelte Fehlernummer '+number+' in der Word-Liste.');if(number)numbers.add(numberKey);
  e.sourceQuote=e.quote;e.sourceNumber=number||String(errors.length+1);e.fromTable=true;
  if(!e.type){e.type=globalThis.KWInferType(e.explanation);e.typeInferred=!!e.type;}errors.push(e);
  }}
  const prose=elements(d,'p').map(textOf).join(' '),totals=[...prose.matchAll(/Gesamt\s*:\s*(\d+(?:[.,]\d+)?)\s*Fehlerpunkte/gi)].map(m=>Number(m[1].replace(',','.')));
+ if(summaryTotal!==null)totals.push(summaryTotal);
  if(cleanRows&&(errors.length||cleanRows!==1))throw Error('Die Angabe «Keine Fehler» widerspricht anderen Einträgen.');
  if(totals.length&&errors.every(e=>Number.isFinite(e.weight))&&totals.some(n=>Math.abs(n-errors.reduce((a,e)=>a+e.weight,0))>0.0001))throw Error('Die importierte Summe stimmt nicht mit der Gesamtsumme in der Word-Liste überein.');
  if(skipped)notes.push('Separate Ausdrucks- und Stilhinweise werden nicht als gezählte Fehler übernommen.');if(errors.some(e=>e.typeInferred))notes.push('Fehlerarten wurden aus den Erklärungen abgeleitet und können vor dem Export geändert werden.');
