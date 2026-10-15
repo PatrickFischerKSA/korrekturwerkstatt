@@ -44,3 +44,45 @@ console.log('PASS: synonyms, header typos, title rows, repeated headers, continu
 for(const name of ['Fehler'])assert.equal(KW.fieldFor(name),'quote');
 for(const name of ['Korrektur / Begründung','Verbesserung / Begründung'])assert.equal(KW.fieldFor(name),'correction');
 assert.equal(KW.parseTable([['Nr.','Kapitel','Fehler','Korrektur'],['1','Vorwort','große','grosse']]).entries[0].quote,'große');
+
+// Chapter metadata resolves repeated words without asking the user to pick identical labels.
+const chapterText='Vorwort\ngroße Freude. große Hilfe.\nEinleitung\nBewegungs-geschichte.\nErgebnisse\nBewegungs-geschichte.\n';
+const sections=[{title:'Vorwort',number:'2',start:0,end:chapterText.indexOf('Einleitung'),path:['Vorwort']},{title:'Einleitung',number:'3',start:chapterText.indexOf('Einleitung'),end:chapterText.indexOf('Ergebnisse'),path:['Einleitung']},{title:'Ergebnisse',number:'5',start:chapterText.indexOf('Ergebnisse'),end:chapterText.length,path:['Ergebnisse']}];
+const row=(quote,chapter,correction)=>({...KW.entry({Fehler:quote,Kapitel:chapter,Korrektur:correction,Fehlerart:'Rechtschreibung',Gewicht:'1'}),fromTable:true});
+assert.equal(KW.fieldFor('Kapitel'),'chapter');
+const scoped=KW.prepareErrors(chapterText,[row('große','Vorwort','grosse'),row('große','Vorwort','grosse'),row('Bewegungs-geschichte','Einleitung','Bewegungsgeschichte'),row('Bewegungs-geschichte','5','Bewegungsgeschichte')],sections);
+assert(KW.resolve(chapterText,scoped).every(e=>!e.issue));
+assert.notDeepEqual(scoped[0].anchor,scoped[1].anchor);
+assert(scoped[2].anchor.start<sections[2].start);
+assert(scoped[3].anchor.start>=sections[2].start);
+assert.equal(KW.resolve(chapterText,KW.prepareErrors(chapterText,[row('große','Vorwort','grosse')],sections))[0].issue,'2 mögliche Stellen');
+assert.equal(KW.candidates('anschließend ließen schließen','ließen').length,1,'Whole words take precedence over embedded word fragments');
+assert.equal(KW.candidates('Bewegungs- geschichte','Bewegungs-geschichte').length,1,'PDF line breaks after hyphens');
+const mixed='auf den Fußballen laufen, wurden notiert';
+const mixedResult=KW.prepareErrors(mixed,[row('auf den Fussballen laufen, wurden notiert','','auf den Fussballen laufen wurden notiert')]);
+assert.equal(KW.resolve(mixed,mixedResult)[0].issue,'','Swiss spelling in a quote must still find an original ß');
+const omitted='Dies war für Kinder ansprech- ender und abwechslungsreicher.';
+assert.equal(KW.resolve(omitted,KW.prepareErrors(omitted,[row('Dies war […] ansprechender […] abwechslungsreicher.','','Dies wirkte ansprechender.')]))[0].issue,'');
+const combined=KW.entry({'Original':'falsch','Korrektur / Begründung':'richtig — Ein Tippfehler.'});
+assert.equal(combined.correction,'richtig');assert.equal(combined.explanation,'Ein Tippfehler.');
+console.log('PASS: chapter ranges, repeated occurrences, word boundaries, PDF hyphens, overlapping spelling variants and combined explanations');
+// A tab stop in paragraph formatting is not a text tab (and must never be exported as a run).
+const namespace='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+const element=(localName,childNodes=[],textContent='',attributes={})=>({nodeType:1,namespaceURI:namespace,localName,childNodes,children:childNodes,textContent,getAttributeNS(ns,key){return attributes[key]??null;},getElementsByTagNameNS(ns,name){return childNodes.flatMap(c=>[...(c.namespaceURI===ns&&c.localName===name?[c]:[]),...c.getElementsByTagNameNS(ns,name)]);}});
+const formattedDoc=element('document',[element('body',[element('p',[element('pPr',[element('tabs',[element('tab')])]),element('r',[element('t',[],'Ein Wort'),element('tab'),element('t',[],'danach')])])])]);
+assert.equal(KW.indexDoc(formattedDoc).text,'Ein Wort\tdanach\n');
+console.log('PASS: Word formatting tab stops are excluded from document text');
+const value=(name,val)=>element(name,[],'',{val:String(val)});
+const heading=(title,level)=>element('p',[element('pPr',[value('pStyle','Heading'+(level+1)),element('numPr',[value('numId',1),value('ilvl',level)])]),element('r',[element('t',[],title)])]);
+const numbered=element('document',[element('body',[heading('Inhaltsverzeichnis',0),heading('Vorwort',0),heading('Einleitung',0),heading('Vorgehen',0),heading('Geschichten',1),heading('Gewöhnliche Geschichte',2),heading('Bewegungsgeschichte',2)])]);
+const numbering=element('numbering',[element('num',[value('abstractNumId',0)],'',{numId:'1'}),element('abstractNum',[0,1,2].map(i=>element('lvl',[value('start',1)],'',{ilvl:String(i)})),'',{abstractNumId:'0'})]);
+const numberedSections=KW.documentSections(KW.indexDoc(numbered),numbering);
+assert.equal(numberedSections.find(s=>s.title==='Bewegungsgeschichte').number,'4.1.2');
+assert(KW.chapterRange(numberedSections,'4.1.2'));
+const pdfParagraph=s=>element('p',[element('r',[element('t',[],s)])]);
+const pdfDoc=element('document',[element('body',['3 Einleitung','Text davor.','1 Kindes positiv beitragen.','Text danach.','4 Vorgehen','10Anhang','10.1 Gewöhnliche Geschichte'].map(pdfParagraph))]);
+const pdfSections=KW.documentSections(KW.indexDoc(pdfDoc),null);
+assert(!pdfSections.some(s=>s.title==='Kindes positiv beitragen.'));
+assert(KW.chapterRange(pdfSections,'Anhang – gewöhnliche Geschichte'));
+assert.equal(pdfSections[0].end,pdfSections[1].start);
+console.log('PASS: automatic Word chapter numbering, PDF continuation lines and appendix paths');
