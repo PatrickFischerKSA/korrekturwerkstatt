@@ -96,3 +96,26 @@ assert.equal(KW.findList(realOriginal,[realList,{...realList,id:'other'}],true),
 assert.equal(KW.findList(realOriginal,[{...realList,errors:[{textId:'anderer Text'}]}],true),null,'Respect explicit text IDs');
 assert.equal(KW.findList(realOriginal,[{...realList,errors:[],clean:true}],true).clean,true);
 console.log('PASS: original filenames, single-pair assignment, competing lists and explicit text IDs');
+// Overview tables are identified by their roles, independent of wording and position.
+for(const points of ['Punkte','Fehlerpunkte','Abzug (Punkte)'])for(const title of [[],[['Zählung']]]){
+ const overview=KW.summaryTable([...title,['Kategorie','Anzahl',points],['Grammatik','9','9'],['Orthografie','7','7'],['Satzzeichen','1','0,5'],['Gesamt','17','16,5']]);
+ assert.equal(overview.total,16.5);assert.deepEqual(overview.rules.map(r=>r.weight),[1,1,0.5]);
+}
+assert.equal(KW.summaryTable([['Nr. / Stelle','Original','Korrektur','Begründung'],['1. 2.1, S. 4','falsch','richtig','Grund']]),null);
+for(const heading of ['Grammatik (9 × 1 Punkt)','2. Grammatikfehler (9 × 1 Punkt)'])assert.equal(KW.sectionRule(heading).type,'Grammatik');
+assert.equal(KW.sectionRule('Satzzeichen (1 × 0,5 Punkte)').weight,0.5);
+assert.equal(KW.sectionRule('Orthografie').type,'Rechtschreibung');
+assert.equal(KW.uncountedHeading('Weitere sprachliche Auffälligkeiten – nicht bewertet'),true);
+assert.equal(KW.uncountedHeading('4. Weitere sprachliche Auffälligkeiten (nicht gezählt)'),true);
+assert.equal(KW.uncountedHeading('Automatische Trennungen am Zeilenende werden nicht gezählt.'),false);
+assert.deepEqual(KW.placeInfo('1. 2.1, S. 4'),{number:'1',chapter:'2.1'});
+assert.equal(KW.entry({'Nr. / Stelle':'1. 2.1, S. 4',Original:'falsch',Korrektur:'richtig'}).chapter,'2.1');
+assert.equal(KW.parseTable([['Nr. / Stelle','Original','Korrektur'],['1. 2.1, S. 4','falsch','richtig']]).entries[0].sourceNumber,'1');
+const ellipsisText='Mechanismen im Überblick.\n2.1 Kapitel\nMechanismen werden erklärt. Mechanismen wirken, die Freude fördern kann.';
+const scopedEllipsis=KW.prepareErrors(ellipsisText,[row('Mechanismen ..., die ... fördern kann','2.1','Mechanismen ..., die ... fördern können')],[{number:'2.1',title:'Kapitel',path:['Kapitel'],start:ellipsisText.indexOf('2.1 Kapitel'),end:ellipsisText.length}]);
+assert.equal(KW.resolve(ellipsisText,scopedEllipsis)[0].issue,'');
+assert.equal(KW.candidates('Mechanismen stehen vorne. Mechanismen wirken, die Freude fördern kann.','Mechanismen ..., die ... fördern kann')[0].start,'Mechanismen stehen vorne. '.length);
+console.log('PASS: overview variants, numbered and plain category headings, combined locations and scoped plain ellipses');
+
+const weightedOverview=KW.summaryTable([['Kategorie','Anzahl','Gewichtung','Fehlerpunkte'],['Orthografie','44','1','44'],['Grammatik','6','1','6'],['Satzzeichen','8','0,5','4'],['Total','58','','54']]);
+assert.equal(weightedOverview.total,54);assert.equal(weightedOverview.rules[2].weight,0.5);

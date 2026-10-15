@@ -119,3 +119,7 @@ Die Spalte «Kapitel» wird für die automatische Textstellenzuordnung verwendet
 Bei genau einem Original und einer Fehlerliste erfolgt die Zuordnung unabhängig von den Dateinamen automatisch (ausdrückliche Text-IDs bleiben massgebend). Weitere Dateiimporte werden während laufender Verarbeitung vorgemerkt und danach eingelesen. Eine fehlende Fehlerliste wird direkt bei der Prüfansicht mit einer Schaltfläche zum Laden angezeigt.
 
 Nach dem Export bleiben die erzeugten Dateien über sichtbare Download-Links erreichbar, bis sie durch Änderungen ungültig werden oder die Seite geschlossen wird. Dies erlaubt auch den direkten Download per Klick, wenn ein Browser den automatischen Download nicht startet.
+
+Word-Listen unterstützen Übersichten mit «Punkte», «Fehlerpunkte» oder «Abzug», auch nach den Fehlertabellen. Kategorien dürfen mit oder ohne Nummerierung stehen; Zählregeln werden aus Überschriften oder Übersichten übernommen. «Nr. / Stelle» liefert Fehlernummer und Kapitel. Auslassungen in Zitaten werden als «…», «...» oder «[…]» unterstützt. Hinweise im Fliesstext ändern die Zählung nicht; ausdrücklich unbewertete Abschnitte bleiben ungezählt.
+
+Regressionen: `node tests/import-regressions.cjs` und `node tests/import-queue.cjs`. Mit installiertem Playwright und Chrome prüft `node tests/browser-formats.cjs` zwölf vollständige synthetische Word-Layouts; ein abweichender Playwright-Modulpfad kann über `KW_PLAYWRIGHT_MODULE` angegeben werden.
