@@ -1,0 +1,32 @@
+const assert=require('node:assert/strict');
+const vm=require('node:vm');
+const fs=require('node:fs');
+require('../dist/engine.js');
+const elements=new Map(),listeners=new Map();
+function element(id){if(!elements.has(id))elements.set(id,{id,textContent:'',innerHTML:'',value:'',disabled:false,hidden:false,dataset:{},classList:{add(){},remove(){}},addEventListener(event,callback){listeners.set(id+':'+event,callback);},focus(){},scrollIntoView(){}});return elements.get(id);}
+let releaseText,readTextCalls=0,readListCalls=0,exportCalls=0,downloads=0;
+const textRead=new Promise(resolve=>releaseText=resolve);
+const error={...KW.entry({Textstelle:'Fehler',Fehlerart:'Rechtschreibung',Erklärung:'Tippfehler',Gewicht:'1',Korrektur:'Wort'}),fromTable:true};
+const api={...KW,async readText(file){readTextCalls++;await textRead;return{name:file.name,id:KW.fileId(file.name),text:'Ein Fehler.',sections:[],embedded:[],sourceNotes:[],errors:[],assignment:'',output:null};},async readList(file){readListCalls++;return{name:file.name,id:KW.fileId(file.name),errors:[error],notes:[]};},async exportDoc(){exportCalls++;return new Blob(['test']);}};
+let uid=0;
+const context={KW:api,document:{getElementById:element,createElement(){return{click(){downloads++;},remove(){}};},body:{append(){}}},crypto:{randomUUID:()=>String(++uid)},structuredClone,Blob,URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},setTimeout(){},window:{addEventListener(){}},console};
+vm.runInNewContext(fs.readFileSync(require.resolve('../dist/app.js'),'utf8'),context);
+const change=(id,file)=>listeners.get(id+':change')({target:{files:[file],value:'selected'}});
+const waitFor=async check=>{for(let i=0;i<100;i++){if(check())return;await new Promise(resolve=>setImmediate(resolve));}throw Error('Queued import/export did not complete');};
+(async()=>{
+ change('texts',{name:'Facharbeit Livia.docx'});
+ change('lists',{name:'Fehlerliste_Fachmaturaarbeit_Livia.docx'});
+ await waitFor(()=>readTextCalls===1);
+ assert.equal(readListCalls,0,'File processing must stay serial');
+ assert.equal(element('lists').disabled,false,'A second file can be selected while an import runs');
+ releaseText();
+ await waitFor(()=>element('ready').textContent==='1 von 1 Texten bereit');
+ assert.equal(readListCalls,1,'A selection made during the first import must not disappear');
+ assert.equal(element('download-one').disabled,false);
+ assert.equal(element('download-all').disabled,false);
+ assert.match(element('errors').innerHTML,/Zugeordnet/);
+ listeners.get('download-one:click')();
+ await waitFor(()=>downloads===1);
+ assert.equal(exportCalls,1);
+ console.log('PASS: overlapping imports are queued, actual filenames pair, and the export button works');
+})().catch(error=>{console.error(error);process.exitCode=1;});

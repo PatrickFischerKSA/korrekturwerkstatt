@@ -86,3 +86,13 @@ assert(!pdfSections.some(s=>s.title==='Kindes positiv beitragen.'));
 assert(KW.chapterRange(pdfSections,'Anhang – gewöhnliche Geschichte'));
 assert.equal(pdfSections[0].end,pdfSections[1].start);
 console.log('PASS: automatic Word chapter numbering, PDF continuation lines and appendix paths');
+// A sole original and a sole eligible list pair regardless of their filenames.
+const realOriginal={id:KW.fileId('Facharbeit Livia.docx')};
+const realList={id:KW.fileId('Fehlerliste_Fachmaturaarbeit_Livia.docx'),errors:[KW.entry({Textstelle:'Beispiel'})]};
+assert.notEqual(realOriginal.id,realList.id);
+assert.equal(KW.findList(realOriginal,[realList],true),realList);
+assert.equal(KW.findList(realOriginal,[realList],false),null,'Do not guess in a batch of unrelated originals');
+assert.equal(KW.findList(realOriginal,[realList,{...realList,id:'other'}],true),null,'Competing lists remain explicit');
+assert.equal(KW.findList(realOriginal,[{...realList,errors:[{textId:'anderer Text'}]}],true),null,'Respect explicit text IDs');
+assert.equal(KW.findList(realOriginal,[{...realList,errors:[],clean:true}],true).clean,true);
+console.log('PASS: original filenames, single-pair assignment, competing lists and explicit text IDs');

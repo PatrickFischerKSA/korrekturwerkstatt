@@ -3,3 +3,5 @@
 .pdf-source{font-size:13px;color:#586b80;margin-bottom:12px}.pdf-source summary{cursor:pointer}.pdf-source p{margin:8px 0}.section-title h2{overflow-wrap:anywhere;min-width:0}#list-notes:empty{display:none}
 
 #notice[data-kind="success"]{background:#edf6f0;border-color:#b7d8c4;color:#24563c}#notice[data-kind="info"]{background:#eef3fa;border-color:#c5d3e7;color:#344d70}#notice[data-kind="error"]{background:#fff4ee;border-color:#ddb29a;color:#873b22}#notice ul{margin:10px 0 0;padding-left:20px;white-space:normal}#notice li+li{margin-top:7px}.import-notes{margin-top:10px;white-space:normal}.import-notes summary{cursor:pointer;font-size:14px}
+
+.assignment-needed{margin:0 22px 18px;padding:18px;border:1px solid #c9d3e0;border-radius:7px;background:#f2f6fb;color:#283e59;font-size:14px}.assignment-needed p{margin:8px 0 14px}.assignment-needed strong{display:block}
