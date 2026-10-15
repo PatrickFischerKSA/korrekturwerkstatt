@@ -27,6 +27,6 @@ const waitFor=async check=>{for(let i=0;i<100;i++){if(check())return;await new P
  assert.match(element('errors').innerHTML,/Zugeordnet/);
  listeners.get('download-one:click')();
  await waitFor(()=>downloads===1);
- assert.equal(exportCalls,1);
+ assert.equal(exportCalls,1);assert.equal(element('downloads').hidden,false);assert.match(element('downloads').innerHTML,/download="Facharbeit Livia_mit_Randbemerkungen.docx"/);assert.match(element('downloads').innerHTML,/href="blob:test"/);
  console.log('PASS: overlapping imports are queued, actual filenames pair, and the export button works');
 })().catch(error=>{console.error(error);process.exitCode=1;});
