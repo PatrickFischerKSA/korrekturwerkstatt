@@ -28,5 +28,9 @@ const waitFor=async check=>{for(let i=0;i<100;i++){if(check())return;await new P
  listeners.get('download-one:click')();
  await waitFor(()=>downloads===1);
  assert.equal(exportCalls,1);assert.equal(element('downloads').hidden,false);assert.match(element('downloads').innerHTML,/download="MeinOriginal_mit_Randbemerkungen.docx"/);assert.match(element('downloads').innerHTML,/href="blob:test"/);
- console.log('PASS: overlapping imports are queued, actual filenames pair, and the export button works');
+ change('lists',{name:'UnabhaengigeListe.docx'});
+ await waitFor(()=>readListCalls===2&&!element('download-one').disabled);
+ assert.equal((element('assignment').innerHTML.match(/UnabhaengigeListe.docx/g)||[]).length,1,'Reload updates the list instead of duplicating it');
+ assert.match(element('notice').innerHTML,/aktualisiert/);
+ console.log('PASS: reupload replaces lists, overlapping imports are queued, actual filenames pair, and the export button works');
 })().catch(error=>{console.error(error);process.exitCode=1;});

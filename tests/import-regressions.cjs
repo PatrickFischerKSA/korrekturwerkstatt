@@ -119,3 +119,8 @@ console.log('PASS: overview variants, numbered and plain category headings, comb
 
 const weightedOverview=KW.summaryTable([['Kategorie','Anzahl','Gewichtung','Fehlerpunkte'],['Orthografie','44','1','44'],['Grammatik','6','1','6'],['Satzzeichen','8','0,5','4'],['Total','58','','54']]);
 assert.equal(weightedOverview.total,54);assert.equal(weightedOverview.rules[2].weight,0.5);
+
+const paragraphEntries=KW.labeled('Orthografie\n1. Seite 2 — 1 Fehlerpunkt\nOriginal: «altes Wort»\nKorrektur: neues Wort\nBegründung: Schreibweise\nSatzzeichen\n1. Seite 3 — 0.5 Fehlerpunkte\nOriginal: «ein Satz»\nKorrektur: ein Satz.\nBegründung: Punkt fehlt\nNicht bewertet / Hinweise\nBegleittext');
+assert.equal(paragraphEntries.length,2);assert.equal(paragraphEntries[0].type,'Rechtschreibung');assert.equal(paragraphEntries[1].weight,0.5);assert.equal(paragraphEntries[0].explanation,'Schreibweise');
+assert.equal(KW.candidates('Darunter war «ein Wort» im Satz.','«Darunter war ‹ein Wort› im Satz.»').length,1);
+console.log('PASS: category headings, dash-separated metadata and interchangeable guillemets');
