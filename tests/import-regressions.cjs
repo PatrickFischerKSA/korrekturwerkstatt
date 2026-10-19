@@ -130,3 +130,9 @@ assert.equal(locationRows[0].quote,'Ein Fehler');assert.equal(locationRows[0].so
 assert.equal(KW.tableEntries([['Fundstelle','Korrektur'],['Ein Fehler','Ein Wort']])[0].quote,'Ein Fehler');
 assert.equal(KW.entry({Fundstelle:'S. 4',Original:'Text',Korrektur:'Wort'}).sourceLocation,'S. 4');
 console.log('PASS: contextual Fundstelle header means location beside Original, quote when used alone');
+
+const capitalization=KW.prepareErrors('Die Lehrperson zeigte den Raum und gab Tipps.',[KW.entry({Original:'«die Lehrperson ... gab Tipps»',Korrektur:'Verbesserung',Fehlerart:'Grammatik',Erklärung:'Bezug',Gewicht:1})]);
+assert.equal(KW.resolve('Die Lehrperson zeigte den Raum und gab Tipps.',capitalization)[0].issue,'');
+const ambiguousCaps=KW.prepareErrors('Die Lehrperson gab Tipps. DIE LEHRPERSON gab Tipps.',[KW.entry({Original:'die Lehrperson gab Tipps',Fehlerart:'Grammatik',Erklärung:'Bezug',Gewicht:1})]);
+assert.equal(KW.resolve('Die Lehrperson gab Tipps. DIE LEHRPERSON gab Tipps.',ambiguousCaps)[0].choices.length,2);
+console.log('PASS: case differences with quoted omissions and ambiguity retained');

@@ -32,5 +32,10 @@ const waitFor=async check=>{for(let i=0;i<100;i++){if(check())return;await new P
  await waitFor(()=>readListCalls===2&&!element('download-one').disabled);
  assert.equal((element('assignment').innerHTML.match(/UnabhaengigeListe.docx/g)||[]).length,1,'Reload updates the list instead of duplicating it');
  assert.match(element('notice').innerHTML,/aktualisiert/);
- console.log('PASS: reupload replaces lists, overlapping imports are queued, actual filenames pair, and the export button works');
+ assert.equal(element('export-blocker').hidden,true);
+ error.quote='Nicht im Original';change('lists',{name:'UnabhaengigeListe.docx'});
+ await waitFor(()=>readListCalls===3&&element('export-blocker').hidden===false);
+ assert.match(element('export-blocker').innerHTML,/Fehler 1: Textstelle nicht gefunden/);
+ assert.match(element('export-blocker').innerHTML,/#error-0/);
+ console.log('PASS: export blocker names and links to its cause; reupload replaces lists, overlapping imports are queued, actual filenames pair, and the export button works');
 })().catch(error=>{console.error(error);process.exitCode=1;});
