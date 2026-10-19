@@ -136,3 +136,8 @@ assert.equal(KW.resolve('Die Lehrperson zeigte den Raum und gab Tipps.',capitali
 const ambiguousCaps=KW.prepareErrors('Die Lehrperson gab Tipps. DIE LEHRPERSON gab Tipps.',[KW.entry({Original:'die Lehrperson gab Tipps',Fehlerart:'Grammatik',Erklärung:'Bezug',Gewicht:1})]);
 assert.equal(KW.resolve('Die Lehrperson gab Tipps. DIE LEHRPERSON gab Tipps.',ambiguousCaps)[0].choices.length,2);
 console.log('PASS: case differences with quoted omissions and ambiguity retained');
+
+const bothEntry=KW.entry({Original:'Fehler',Fehlerart:'Grammatik',Erklärung:'Begründung',Gewicht:1,Vorkommen:'all'});
+const bothResolved=KW.resolve('Ein Fehler. Noch ein Fehler.',[bothEntry])[0];
+assert.equal(bothResolved.issue,'');assert.equal(bothResolved.ranges.length,2);assert.equal(bothResolved.weight,1);
+console.log('PASS: all-occurrence selection resolves every range and preserves entry weight');
