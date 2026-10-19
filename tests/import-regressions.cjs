@@ -124,3 +124,9 @@ const paragraphEntries=KW.labeled('Orthografie\n1. Seite 2 — 1 Fehlerpunkt\nOr
 assert.equal(paragraphEntries.length,2);assert.equal(paragraphEntries[0].type,'Rechtschreibung');assert.equal(paragraphEntries[1].weight,0.5);assert.equal(paragraphEntries[0].explanation,'Schreibweise');
 assert.equal(KW.candidates('Darunter war «ein Wort» im Satz.','«Darunter war ‹ein Wort› im Satz.»').length,1);
 console.log('PASS: category headings, dash-separated metadata and interchangeable guillemets');
+
+const locationRows=KW.tableEntries([['Nr.','Fundstelle','Original','Korrektur','Begründung'],['1','S. 7, Kap. 2.3','Ein Fehler','Ein Wort','Begründung']]);
+assert.equal(locationRows[0].quote,'Ein Fehler');assert.equal(locationRows[0].sourceLocation,'S. 7, Kap. 2.3');
+assert.equal(KW.tableEntries([['Fundstelle','Korrektur'],['Ein Fehler','Ein Wort']])[0].quote,'Ein Fehler');
+assert.equal(KW.entry({Fundstelle:'S. 4',Original:'Text',Korrektur:'Wort'}).sourceLocation,'S. 4');
+console.log('PASS: contextual Fundstelle header means location beside Original, quote when used alone');

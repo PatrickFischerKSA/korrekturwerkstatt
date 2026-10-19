@@ -15,7 +15,7 @@ function parseRows(text,delimiter='auto'){
 const serializeRows=rows=>rows.map(row=>row.map(cell=>'"'+string(cell).replace(/"/g,'""')+'"').join('\t')).join('\n');
 function makeSource(title,rows,kind='table'){
  rows=rows.map(row=>row.map(string));let header=-1,best=1,mapping=[];
- for(let i=0;i<Math.min(rows.length,30);i++){const mapped=rows[i].map(KW.fieldFor),score=new Set(mapped.filter(Boolean)).size;if(score>best){best=score;header=i;mapping=mapped;}}
+ for(let i=0;i<Math.min(rows.length,30);i++){const mapped=KW.headerFields(rows[i]),score=new Set(mapped.filter(Boolean)).size;if(score>best){best=score;header=i;mapping=mapped;}}
  const width=rows.reduce((width,row)=>Math.max(width,row.length),1);mapping=Array.from({length:width},(_,i)=>mapping[i]||'');
  const duplicate=new Set(mapping.filter((field,i)=>field&&mapping.indexOf(field)!==i));mapping=mapping.map(field=>duplicate.has(field)?'':field);
  let summary=null;try{summary=KW.summaryTable(rows);}catch{/* Retain unreadable totals in the source for review. */}
