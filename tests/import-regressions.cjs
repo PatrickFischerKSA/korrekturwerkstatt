@@ -141,3 +141,9 @@ const bothEntry=KW.entry({Original:'Fehler',Fehlerart:'Grammatik',Erklärung:'Be
 const bothResolved=KW.resolve('Ein Fehler. Noch ein Fehler.',[bothEntry])[0];
 assert.equal(bothResolved.issue,'');assert.equal(bothResolved.ranges.length,2);assert.equal(bothResolved.weight,1);
 console.log('PASS: all-occurrence selection resolves every range and preserves entry weight');
+
+const composite=KW.tableEntries([['Nr. / Fundstelle','Original → Korrektur','Begründung','Art / Wert'],['1\nKapitel','Feler → Fehler','Tippfehler','O1'],['2\nAnhang','Wort -> Wort,','Komma','Z 0,5']]);
+assert.equal(composite[0].quote,'Feler');assert.equal(composite[0].correction,'Fehler');assert.equal(composite[0].type,'Rechtschreibung');assert.equal(composite[0].sourceNumber,'1');assert.equal(composite[1].weight,0.5);assert.equal(composite[1].type,'Interpunktion');
+assert.throws(()=>KW.entry({'Original → Korrektur':'Kein Trennzeichen','Art / Wert':'G1'}));
+assert.throws(()=>KW.entry({'Original → Korrektur':'Alt → Neu',Original:'Anders'}));
+console.log('PASS: combined quote/correction and type/weight columns with explicit separators and conflict checks');

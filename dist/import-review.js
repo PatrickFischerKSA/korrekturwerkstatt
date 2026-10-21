@@ -1,8 +1,8 @@
 /* Layout-independent recovery for the five supported containers. Files stay local. */
 (function(global){
 'use strict';
-const fields=['quote','correction','explanation','type','weight','chapter','location','number','occurrence','textId'];
-const labels={quote:'Fehlerhafte Textstelle',correction:'Korrektur',explanation:'Erklärung',type:'Fehlerart',weight:'Gewicht / Punkte',chapter:'Kapitel',location:'Nummer und Fundstelle',number:'Fehlernummer',occurrence:'Vorkommen',textId:'Text-ID'};
+const fields=['quoteCorrection','typeWeight','quote','correction','explanation','type','weight','chapter','location','number','occurrence','textId'];
+const labels={quoteCorrection:'Original → Korrektur (gemeinsame Spalte)',typeWeight:'Fehlerart / Gewicht (gemeinsame Spalte)',quote:'Fehlerhafte Textstelle',correction:'Korrektur',explanation:'Erklärung',type:'Fehlerart',weight:'Gewicht / Punkte',chapter:'Kapitel',location:'Nummer und Fundstelle',number:'Fehlernummer',occurrence:'Vorkommen',textId:'Text-ID'};
 const string=value=>typeof value==='string'?value:value==null?'':typeof value==='object'?JSON.stringify(value):String(value);
 function parseRows(text,delimiter='auto'){
  text=String(text).replace(/^\uFEFF/,'');
@@ -19,7 +19,7 @@ function makeSource(title,rows,kind='table'){
  const width=rows.reduce((width,row)=>Math.max(width,row.length),1);mapping=Array.from({length:width},(_,i)=>mapping[i]||'');
  const duplicate=new Set(mapping.filter((field,i)=>field&&mapping.indexOf(field)!==i));mapping=mapping.map(field=>duplicate.has(field)?'':field);
  let summary=null;try{summary=KW.summaryTable(rows);}catch{/* Retain unreadable totals in the source for review. */}
- const role=summary?'reference':mapping.includes('quote')&&mapping.some(f=>['correction','explanation','type','weight'].includes(f))?'entries':'unresolved';
+ const role=summary?'reference':(mapping.includes('quote')||mapping.includes('quoteCorrection'))&&mapping.some(f=>['correction','explanation','type','weight','quoteCorrection','typeWeight'].includes(f))?'entries':'unresolved';
  return{title,kind,rows,originalRows:structuredClone(rows),startRow:header+1,mapping,role,excluded:[],defaultType:'',defaultWeight:'',summary};
 }
 function transpose(rows){const width=rows.reduce((n,row)=>Math.max(n,row.length),0);return Array.from({length:width},(_,column)=>rows.map(row=>row[column]||''));}
@@ -53,7 +53,7 @@ async function inspect(file,reason){
 }
 function compile(draft){
  const entries=[];for(const source of draft.sources){if(source.draftText!==undefined&&source.draftText!==serializeRows(source.rows))throw Error('Die bearbeiteten Zeilen in «'+source.title+'» bitte zuerst mit «Zeilen aktualisieren» anwenden.');if(source.role==='unresolved')throw Error('Bitte für «'+source.title+'» auswählen, ob der Inhalt Fehler oder Begleittext ist.');if(source.role!=='entries')continue;
-  const mapped=source.mapping.filter(Boolean);if(new Set(mapped).size!==mapped.length)throw Error('Jede Bedeutung darf pro Tabelle nur einer Spalte zugeordnet werden.');if(!mapped.includes('quote'))throw Error('Für «'+source.title+'» bitte die Spalte mit der fehlerhaften Textstelle wählen.');
+  const mapped=source.mapping.filter(Boolean);if(new Set(mapped).size!==mapped.length)throw Error('Jede Bedeutung darf pro Tabelle nur einer Spalte zugeordnet werden.');if(!mapped.includes('quote')&&!mapped.includes('quoteCorrection'))throw Error('Für «'+source.title+'» bitte die Spalte mit der fehlerhaften Textstelle wählen.');
   for(let i=source.startRow;i<source.rows.length;i++){const row=source.rows[i];if(source.excluded.includes(i)||!row.some(cell=>cell.trim()))continue;const raw={},extra=[];row.forEach((cell,j)=>{const field=source.mapping[j];if(field)raw[field]=cell;else extra.push({column:j+1,value:cell});});if(!raw.type&&source.defaultType)raw.type=source.defaultType;if(!raw.weight&&source.defaultWeight!=='')raw.weight=source.defaultWeight;
    const entry=KW.entry(raw);entry.sourceQuote=entry.quote;entry.sourceNumber ||= String(entries.length+1);entry.fromTable=true;entry.sourceCells=structuredClone(row);entry.sourceTitle=source.title;entry.extra=extra;entries.push(entry);
   }
