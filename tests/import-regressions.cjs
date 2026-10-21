@@ -55,7 +55,7 @@ assert(KW.resolve(chapterText,scoped).every(e=>!e.issue));
 assert.notDeepEqual(scoped[0].anchor,scoped[1].anchor);
 assert(scoped[2].anchor.start<sections[2].start);
 assert(scoped[3].anchor.start>=sections[2].start);
-assert.equal(KW.resolve(chapterText,KW.prepareErrors(chapterText,[row('große','Vorwort','grosse')],sections))[0].issue,'2 mögliche Stellen');
+assert.equal(KW.resolve(chapterText,KW.prepareErrors(chapterText,[row('große','Vorwort','grosse')],sections))[0].ranges.length,2);
 assert.equal(KW.candidates('anschließend ließen schließen','ließen').length,1,'Whole words take precedence over embedded word fragments');
 assert.equal(KW.candidates('Bewegungs- geschichte','Bewegungs-geschichte').length,1,'PDF line breaks after hyphens');
 const mixed='auf den Fußballen laufen, wurden notiert';
@@ -147,3 +147,5 @@ assert.equal(composite[0].quote,'Feler');assert.equal(composite[0].correction,'F
 assert.throws(()=>KW.entry({'Original → Korrektur':'Kein Trennzeichen','Art / Wert':'G1'}));
 assert.throws(()=>KW.entry({'Original → Korrektur':'Alt → Neu',Original:'Anders'}));
 console.log('PASS: combined quote/correction and type/weight columns with explicit separators and conflict checks');
+
+assert.equal(KW.entry({Vorkommen:null}).occurrence,null);
